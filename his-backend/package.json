@@ -1,0 +1,24 @@
+{
+  "name": "his-backend",
+  "version": "1.0.0",
+  "description": "Backend API REST para el Sistema de Gestión Hospitalaria HIS — conecta con SQL Server 2022 (BDHIS_HRA)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["his", "hospital", "api", "sql-server"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "mssql": "^11.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

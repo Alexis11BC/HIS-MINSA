@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión Hospitalaria - HIS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            his: {
+              50:'#faf5ff',100:'#f3e8ff',200:'#e9d5ff',300:'#d8b4fe',
+              500:'#a855f7',600:'#9333ea',700:'#7e22ce',800:'#6b21a8',900:'#581c87'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f7f8fc}
+    .sidebar{background:#4b1f5e}
+    .nav-item{color:#eadcf0;transition:.15s}
+    .nav-item:hover{background:rgba(255,255,255,.08)}
+    .nav-item.active{background:#81379b;color:#fff;box-shadow:inset 3px 0 #eadcf0}
+    .page{display:none}.page.active{display:block}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.045)}
+    .input{width:100%;border:1px solid #d8dee8;border-radius:10px;padding:10px 12px;background:#fff;outline:none;font-size:13px}
+    .input:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.12)}
+    .label{display:block;font-size:12px;font-weight:800;color:#475569}
+    .label .input,.label select,.label textarea{margin-top:6px}
+    .btn{border-radius:10px;padding:10px 14px;font-size:13px;font-weight:800;transition:.15s}
+    .btn-primary{background:#6b21a8;color:#fff}.btn-primary:hover{background:#581c87}
+    .btn-light{background:#fff;border:1px solid #d8dee8;color:#334155}.btn-light:hover{background:#f8fafc}
+    .btn-soft{background:#f3e8ff;color:#6b21a8}.btn-soft:hover{background:#e9d5ff}
+    .section-title{font-size:14px;font-weight:900;color:#334155}
+    .kv{display:grid;grid-template-columns:190px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid #eef2f7;font-size:13px}
+    .kv:last-child{border-bottom:0}.kv-key{color:#64748b;font-weight:700}
+    .empty{border:1px dashed #cbd5e1;border-radius:14px;padding:34px;text-align:center;color:#94a3b8;background:#fff}
+    .modal-backdrop{background:rgba(15,23,42,.55);backdrop-filter:blur(2px)}
+    .drawer{transform:translateX(-100%);transition:.2s}.drawer.open{transform:translateX(0)}
+    .tab{padding:8px 12px;border-radius:9px;color:#64748b;font-size:12px;font-weight:800}
+    .tab.active{background:#f3e8ff;color:#6b21a8}
+    .pill{font-size:11px;font-weight:800;padding:5px 9px;border-radius:999px}
+    @media(max-width:1023px){#sidebar{transform:translateX(-100%)}#sidebar.open{transform:translateX(0)}}
+    @media(max-width:640px){.kv{grid-template-columns:1fr;gap:3px}}
+  </style>
+</head>
+
+<body class="text-slate-800">
+
+<div id="mobileOverlay" class="hidden fixed inset-0 bg-slate-900/40 z-30 lg:hidden"></div>
+
+<aside id="sidebar" class="fixed left-0 top-0 bottom-0 z-40 w-[255px] sidebar text-white flex flex-col">
+  <div class="h-[74px] px-4 flex items-center gap-3 border-b border-white/10">
+    <div class="w-10 h-10 rounded-xl bg-white text-his-800 grid place-items-center text-2xl font-black">+</div>
+    <div>
+      <div class="font-black text-sm">Gestión Hospitalaria</div>
+      <div class="text-[11px] text-purple-200">Sistema HIS</div>
+    </div>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto px-3 py-5">
+    <div class="text-[10px] uppercase font-black text-purple-200 px-2 mb-2">Principal</div>
+    <button class="nav-item active w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-1" data-page="inicio">⌂ <span>Inicio</span></button>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-1" data-page="pacientes">♙ <span>Pacientes</span></button>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-1" data-page="atenciones">▣ <span>Atenciones</span></button>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-1" data-page="defunciones">⚕ <span>Defunciones</span></button>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-6" data-page="personal">♟ <span>Personal</span></button>
+
+    <div class="text-[10px] uppercase font-black text-purple-200 px-2 mb-2">Consultas</div>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-1" data-page="buscar">⌕ <span>Buscar información</span></button>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm mb-1" data-page="catalogos">▤ <span>Catálogos</span></button>
+    <button class="nav-item w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm" data-page="reportes">▥ <span>Reportes</span></button>
+  </nav>
+
+  <div class="p-3 border-t border-white/10">
+    <div class="text-[11px] text-purple-200">Estado</div>
+    <div class="flex items-center gap-2 mt-1 text-xs"><span class="w-2 h-2 rounded-full bg-amber-300"></span> API / SQL Server pendiente</div>
+  </div>
+</aside>
+
+<div class="lg:ml-[255px] min-h-screen">
+<header class="h-[74px] bg-white border-b sticky top-0 z-20 px-4 md:px-7 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <button id="menuBtn" class="lg:hidden w-10 h-10 border rounded-lg">☰</button>
+    <div>
+      <div id="headerTitle" class="font-black">Inicio</div>
+      <div id="headerSubtitle" class="text-xs text-slate-500">Resumen del sistema</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="hidden md:inline-flex pill bg-amber-50 text-amber-700">● Sin conexión a SQL Server</span>
+    <div class="w-9 h-9 rounded-full bg-purple-100 text-his-800 grid place-items-center font-black">A</div>
+  </div>
+</header>
+
+<main class="p-4 md:p-7 max-w-[1500px] mx-auto">
+
+<!-- INICIO -->
+<section id="inicio" class="page active">
+  <div class="mb-6">
+    <div class="text-[11px] font-black uppercase text-his-700">Panel principal</div>
+    <h1 class="text-2xl md:text-3xl font-black mt-1">Gestión Hospitalaria</h1>
+    <p class="text-sm text-slate-500 mt-1">Consulta, registra y revisa información del HIS de forma sencilla.</p>
+  </div>
+
+  <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+    <div class="card p-5"><div class="text-sm font-bold text-slate-500">Pacientes</div><div class="text-3xl font-black mt-3">—</div><div class="text-xs text-slate-400 mt-1">Se cargará desde SQL Server</div></div>
+    <div class="card p-5"><div class="text-sm font-bold text-slate-500">Atenciones</div><div class="text-3xl font-black mt-3">—</div><div class="text-xs text-slate-400 mt-1">Se cargará desde NProduccion</div></div>
+    <div class="card p-5"><div class="text-sm font-bold text-slate-500">Personal</div><div class="text-3xl font-black mt-3">—</div><div class="text-xs text-slate-400 mt-1">Se cargará desde SQL Server</div></div>
+    <div class="card p-5"><div class="text-sm font-bold text-slate-500">Defunciones</div><div class="text-3xl font-black mt-3">—</div><div class="text-xs text-slate-400 mt-1">Se cargará desde SINADEF</div></div>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-5">
+    <div class="card p-5">
+      <div class="font-black">Accesos rápidos</div>
+      <div class="grid sm:grid-cols-2 gap-3 mt-4">
+        <button class="card p-4 text-left hover:border-purple-300" data-go="pacientes"><b>♙ Buscar paciente</b><p class="text-xs text-slate-500 mt-1">ID, documento, historia clínica o ficha familiar.</p></button>
+        <button class="card p-4 text-left hover:border-purple-300" data-go="personal"><b>♟ Buscar personal</b><p class="text-xs text-slate-500 mt-1">Consultar datos laborales y personales.</p></button>
+        <button class="card p-4 text-left hover:border-purple-300" data-go="atenciones"><b>▣ Buscar atención</b><p class="text-xs text-slate-500 mt-1">Consultar una cita o atención.</p></button>
+        <button class="card p-4 text-left hover:border-purple-300" data-go="defunciones"><b>⚕ Buscar defunción</b><p class="text-xs text-slate-500 mt-1">Documento, número o certificado.</p></button>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="font-black">Cómo se conectará</div>
+      <ol class="mt-4 space-y-3 text-sm text-slate-600 list-decimal pl-5">
+        <li>El usuario escribe un ID o dato de búsqueda.</li>
+        <li>La página envía la consulta a una API.</li>
+        <li>La API consulta SQL Server.</li>
+        <li>Se cargan los datos relacionados y se muestran en la ficha.</li>
+      </ol>
+      <div class="mt-4 p-3 rounded-xl bg-purple-50 border border-purple-100 text-purple-800 text-xs">
+        El HTML no guarda credenciales de SQL Server. La conexión se hará desde el backend.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PACIENTES -->
+<section id="pacientes" class="page">
+  <div id="pacientesHeader"></div>
+  <div id="pacientesSearchBox"></div>
+  <div id="patientResult" class="mt-5"></div>
+</section>
+
+<!-- PERSONAL -->
+<section id="personal" class="page">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5">
+    <div>
+      <div class="text-[11px] font-black uppercase text-his-700">Recursos humanos</div>
+      <h1 class="text-2xl font-black mt-1">Personal</h1>
+      <p class="text-sm text-slate-500 mt-1">Consulta y registra al personal del establecimiento desde MaestroPersonal.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openForm('personal')">＋ Registrar personal</button>
+  </div>
+
+  <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+    <div class="card p-4">
+      <div class="text-xs font-bold text-slate-500">Personal registrado</div>
+      <div class="text-2xl font-black mt-2">—</div>
+      <div class="text-[11px] text-slate-400 mt-1">Desde MaestroPersonal</div>
+    </div>
+    <div class="card p-4">
+      <div class="text-xs font-bold text-slate-500">Profesiones</div>
+      <div class="text-2xl font-black mt-2">—</div>
+      <div class="text-[11px] text-slate-400 mt-1">Desde MAESTRO_HIS_PROFESION</div>
+    </div>
+    <div class="card p-4">
+      <div class="text-xs font-bold text-slate-500">Colegios profesionales</div>
+      <div class="text-2xl font-black mt-2">—</div>
+      <div class="text-[11px] text-slate-400 mt-1">Desde MAESTRO_HIS_COLEGIO</div>
+    </div>
+    <div class="card p-4">
+      <div class="text-xs font-bold text-slate-500">Condiciones de contrato</div>
+      <div class="text-2xl font-black mt-2">—</div>
+      <div class="text-[11px] text-slate-400 mt-1">Desde MAESTRO_HIS_CONDICION_CONTRATO</div>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="flex flex-col md:flex-row gap-3">
+      <input id="staffSearch" class="input flex-1" placeholder="ID personal, DNI, apellido o nombre">
+      <select id="staffSearchMode" class="input md:w-48">
+        <option value="todo">Todos los datos</option>
+        <option value="id">ID personal</option>
+        <option value="documento">Documento</option>
+        <option value="nombre">Nombre</option>
+      </select>
+      <button class="btn btn-primary" onclick="searchStaff()">🔎 Buscar personal</button>
+    </div>
+    <div class="text-[11px] text-slate-400 mt-2">
+      Al conectar SQL Server, esta búsqueda devolverá la ficha completa del personal y sus atenciones relacionadas.
+    </div>
+  </div>
+
+  <div id="staffResult" class="mt-5">
+    <div class="card p-5">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <div class="font-black">Directorio de personal</div>
+          <div class="text-xs text-slate-500 mt-1">Los registros aparecerán aquí cuando se consulte SQL Server.</div>
+        </div>
+        <span class="pill bg-amber-50 text-amber-700">Sin conexión</span>
+      </div>
+      <div class="border rounded-xl overflow-auto">
+        <table class="min-w-[950px] w-full text-xs">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="p-3 text-left">ID personal</th>
+              <th class="p-3 text-left">Documento</th>
+              <th class="p-3 text-left">Apellidos y nombres</th>
+              <th class="p-3 text-left">Profesión</th>
+              <th class="p-3 text-left">Colegio</th>
+              <th class="p-3 text-left">Colegiatura</th>
+              <th class="p-3 text-left">Condición</th>
+              <th class="p-3 text-left">Establecimiento</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="8" class="p-8 text-center text-slate-400">
+                No se muestran datos inventados. Conecta el backend para cargar MaestroPersonal.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ATENCIONES -->
+<section id="atenciones" class="page">
+  <div id="atencionesHeader"></div>
+  <div class="card p-4">
+    <div class="grid md:grid-cols-[1fr_180px_140px] gap-3">
+      <input id="attentionSearch" class="input" placeholder="Cita, ID paciente, ID personal o código">
+      <select id="attentionMode" class="input">
+        <option value="cita">Código de cita</option>
+        <option value="paciente">Paciente</option>
+        <option value="personal">Personal</option>
+        <option value="codigo">Código CIE/CPMS</option>
+      </select>
+      <button class="btn btn-primary" onclick="searchAttention()">🔎 Buscar</button>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3 mt-3">
+      <label class="label">Desde<input id="attentionFrom" type="date" class="input"></label>
+      <label class="label">Hasta<input id="attentionTo" type="date" class="input"></label>
+    </div>
+  </div>
+  <div id="attentionResult" class="mt-5"></div>
+</section>
+
+<!-- DEFUNCIONES -->
+<section id="defunciones" class="page">
+  <div id="defuncionesHeader"></div>
+  <div class="card p-4">
+    <div class="grid md:grid-cols-[1fr_180px_140px] gap-3">
+      <input id="deathSearch" class="input" placeholder="N, certificado, documento o nombre">
+      <select id="deathMode" class="input">
+        <option value="documento">Documento</option>
+        <option value="n">N</option>
+        <option value="cdef">Certificado</option>
+        <option value="nombre">Nombre</option>
+      </select>
+      <button class="btn btn-primary" onclick="searchDeath()">🔎 Buscar</button>
+    </div>
+  </div>
+  <div id="deathResult" class="mt-5"></div>
+</section>
+
+<!-- BUSCADOR UNIVERSAL -->
+<section id="buscar" class="page">
+  <div class="mb-5"><div class="text-[11px] font-black uppercase text-his-700">Consultas</div><h1 class="text-2xl font-black mt-1">Buscar información</h1><p class="text-sm text-slate-500">Un solo buscador para localizar registros en los módulos principales.</p></div>
+  <div class="card p-5">
+    <div class="grid md:grid-cols-[1fr_190px_120px] gap-3">
+      <input id="globalSearch" class="input" placeholder="ID, DNI, nombre, historia, código o certificado">
+      <select id="globalType" class="input">
+        <option value="todo">Todo</option><option value="paciente">Pacientes</option><option value="personal">Personal</option><option value="atencion">Atenciones</option><option value="defuncion">Defunciones</option>
+      </select>
+      <button class="btn btn-primary" onclick="globalLookup()">🔎 Buscar</button>
+    </div>
+  </div>
+  <div id="globalResult" class="mt-5"></div>
+</section>
+
+<!-- CATALOGOS -->
+<section id="catalogos" class="page">
+  <div class="mb-5"><div class="text-[11px] font-black uppercase text-his-700">Consultas</div><h1 class="text-2xl font-black mt-1">Catálogos</h1><p class="text-sm text-slate-500">Catálogos reales definidos en el script de la BD.</p></div>
+  <div id="catalogGrid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+  <div id="catalogPanel" class="card p-5 mt-5 hidden"></div>
+</section>
+
+<!-- REPORTES -->
+<section id="reportes" class="page">
+  <div class="mb-5"><div class="text-[11px] font-black uppercase text-his-700">Consultas</div><h1 class="text-2xl font-black mt-1">Reportes</h1><p class="text-sm text-slate-500">Filtros preparados para trabajar con NProduccion y las funciones existentes.</p></div>
+  <div id="reportCardsGrid" class="grid lg:grid-cols-3 gap-4"></div>
+  <div id="reportPanel" class="card p-5 mt-5 hidden"></div>
+</section>
+
+</main>
+</div>
+
+<!-- MODAL REGISTRO -->
+<div id="modal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-6xl max-h-[94vh] overflow-hidden shadow-2xl">
+    <div class="px-5 py-4 border-b flex items-center justify-between">
+      <div><div class="text-[10px] font-black uppercase text-his-700">Registro</div><div id="modalTitle" class="font-black text-lg"></div></div>
+      <button onclick="closeModal()" class="w-9 h-9 rounded-lg hover:bg-slate-100">✕</button>
+    </div>
+    <div class="p-5 overflow-y-auto max-h-[calc(94vh-75px)]">
+      <form id="recordForm">
+        <div id="formBody"></div>
+        <div class="flex justify-end gap-2 border-t pt-5 mt-5">
+          <button type="button" onclick="closeModal()" class="btn btn-light">Cancelar</button>
+          <button class="btn btn-primary">Guardar registro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  CONFIGURACIÓN DE CONEXIÓN
+  -------------------------
+  Este archivo NO se conecta directamente a SQL Server.
+  Cuando exista el backend, cambia API_BASE por la URL de tu API.
+
+  Ejemplo:
+    const API_BASE = 'http://localhost:3000/api';
+
+  Endpoints esperados por esta interfaz:
+    GET /api/pacientes?q=...
+    GET /api/pacientes/:id
+    GET /api/pacientes/:id/atenciones
+    GET /api/personal?q=...
+    GET /api/personal/:id
+    GET /api/atenciones?q=...&modo=...&desde=...&hasta=...
+    GET /api/defunciones?q=...&modo=...
+    GET /api/busqueda?q=...&tipo=...
+    GET /api/catalogos/:tabla?q=...
+    POST /api/pacientes
+    POST /api/personal
+    POST /api/atenciones
+    POST /api/defunciones
+*/
+const API_BASE = ''; // dejar vacío mientras no exista el backend
+const DEMO_SIN_DATOS = true; // NO genera datos falsos
+
+const schema = {
+  paciente: {
+    table:'MaestroPaciente',
+    title:'Registrar paciente',
+    sections:[
+      ['Identificación',[
+        ['Id_Paciente','ID del paciente','text'],['Id_Tipo_Documento_Paciente','Tipo de documento','number'],
+        ['Numero_Documento_Paciente','Número de documento','text'],['Apellido_Paterno_Paciente','Apellido paterno','text'],
+        ['Apellido_Materno_Paciente','Apellido materno','text'],['Nombres_Paciente','Nombres','text'],
+        ['Fecha_Nacimiento_Paciente','Fecha de nacimiento','date'],['Id_Genero','Género','text'],['Id_Etnia','Etnia','text']
+      ]],
+      ['Historia y ubicación',[
+        ['Historia_Clinica','Historia clínica','text'],['Ficha_Familiar','Ficha familiar','text'],
+        ['Ubigeo_Nacimiento','Ubicación de nacimiento','text'],['Ubigeo_Reniec','Ubicación RENIEC','text'],
+        ['Domicilio_Reniec','Domicilio RENIEC','text'],['Ubigeo_Declarado','Ubicación declarada','text'],
+        ['Domicilio_Declarado','Domicilio declarado','text'],['Referencia_Domicilio','Referencia del domicilio','text'],
+        ['Id_Pais','País','text'],['Id_Establecimiento','Establecimiento','number'],
+        ['Fecha_Alta','Fecha de alta','datetime-local'],['Fecha_Modificacion','Fecha de modificación','datetime-local']
+      ]]
+    ]
+  },
+  personal: {
+    table:'MaestroPersonal',
+    title:'Registrar personal',
+    sections:[
+      ['Datos personales',[
+        ['Id_Personal','ID del personal','text'],['Id_Tipo_Documento_Personal','Tipo de documento','number'],
+        ['Numero_Documento_Personal','Número de documento','text'],['Apellido_Paterno_Personal','Apellido paterno','text'],
+        ['Apellido_Materno_Personal','Apellido materno','text'],['Nombres_Personal','Nombres','text'],
+        ['Fecha_Nacimiento_Personal','Fecha de nacimiento','date']
+      ]],
+      ['Información laboral',[
+        ['Id_Condicion','Condición','text'],['Id_Profesion','Profesión','text'],['Id_Colegio','Colegio profesional','text'],
+        ['Numero_Colegiatura','Número de colegiatura','text'],['Id_Establecimiento','Establecimiento','number'],
+        ['Fecha_Alta','Fecha de alta','datetime-local'],['Fecha_Baja','Fecha de baja','datetime-local']
+      ]]
+    ]
+  },
+  atencion: {
+    table:'NProduccion',
+    title:'Registrar atención',
+    sections:[
+      ['Datos de la atención',[
+        ['Id_Cita','Código de cita','text'],['Anio','Año','text'],['Mes','Mes','text'],['Dia','Día','text'],
+        ['Fecha_Atencion','Fecha de atención','date'],['Lote','Lote','text'],['Num_Pag','Página','number'],['Num_Reg','Registro','number'],
+        ['Id_Ups','Servicio / UPS','text'],['Id_Establecimiento','Establecimiento','number'],['Id_Paciente','Paciente','text'],
+        ['Id_Personal','Personal','text'],['Id_Registrador','Registrador','text'],['Id_Financiador','Financiador','text'],
+        ['Id_Condicion_Establecimiento','Condición del establecimiento','text'],['Id_Condicion_Servicio','Condición del servicio','text'],
+        ['Id_Turno','Turno','text']
+      ]],
+      ['Evaluación',[
+        ['Edad_Reg','Edad registrada','number'],['Tipo_Edad','Tipo de edad','text'],['Anio_Actual_Paciente','Año actual del paciente','number'],
+        ['Mes_Actual_Paciente','Mes actual del paciente','number'],['Dia_Actual_Paciente','Día actual del paciente','number'],
+        ['Codigo_Item','Código de diagnóstico / procedimiento','text'],['Tipo_Diagnostico','Tipo de diagnóstico','text'],
+        ['Valor_Lab','Valor de laboratorio','text'],['Id_Correlativo_Item','Orden del item','number'],['Id_Correlativo_Lab','Orden del laboratorio','number'],
+        ['Peso','Peso','number'],['Talla','Talla','number'],['Hemoglobina','Hemoglobina','number'],
+        ['Perimetro_Abdominal','Perímetro abdominal','number'],['Perimetro_Cefalico','Perímetro cefálico','number']
+      ]],
+      ['Seguimiento',[
+        ['Id_Otra_Condicion','Otra condición','number'],['Id_Centro_Poblado','Centro poblado','text'],
+        ['Fecha_Ultima_Regla','Fecha última regla','date'],['Fecha_Solicitud_Hb','Fecha solicitud Hb','date'],
+        ['Fecha_Resultado_Hb','Fecha resultado Hb','date'],['Fecha_Registro','Fecha de registro','datetime-local'],
+        ['Fecha_Modificacion','Fecha de modificación','datetime-local'],['Id_Pais','País','text'],
+        ['gruporiesgo_desc','Grupo de riesgo','text'],['condicion_gestante','Condición de gestante','text'],
+        ['Peso_Pregestacional','Peso pregestacional','number'],['Id_Dosis','Dosis','number'],['renipress','RENIPRESS','text'],
+        ['Id_Institucion_Edu','Institución educativa','text'],['Id_AplicacionOrigen','Origen de la información','number'],
+        ['Alerta','Alerta','textarea']
+      ]]
+    ]
+  },
+  fallecido: {
+    table:'V_SINADEF_AYACUCHO_DOMFALLECIDO',
+    title:'Registrar fallecido',
+    sections:[
+      ['Identificación',[
+        ['N','N','text'],['TIPO_CDEF','Tipo de certificado','text'],['CDEF','Código de certificado','text'],['ESTADO','Estado','text'],
+        ['TIPO_SEGURO','Tipo de seguro','text'],['PRIMER_APELLIDO','Primer apellido','text'],['SEGUNDO_APELLIDO','Segundo apellido','text'],
+        ['NOMBRES','Nombres','text'],['TIPO_DOC','Tipo de documento','text'],['DOCUMENTO','Documento','text'],
+        ['SEXO','Sexo','text'],['ETNIA','Etnia','text'],['EDAD','Edad','text'],['TIEMPO_EDAD','Tiempo de edad','text'],
+        ['ESTADO_CIVIL','Estado civil','text'],['NIVEL_DE_INSTRUCCION','Nivel de instrucción','text'],['OCUPACION','Ocupación','text']
+      ]],
+      ['Domicilio',[
+        ['CODIGO_UBIGEO_DOMICILIO','Código de ubicación','text'],['UBIGEO_DOMICILIO','Ubicación','text'],
+        ['DIRECCION_DE_DOMICILIO','Dirección','text'],['CONTINENTE_DOMICILIO','Continente','text'],['PAIS_DOMICILIO','País','text'],
+        ['DEPARTAMENTO_DOMICILIO','Departamento','text'],['PROVINCIA_DOMICILIO','Provincia','text'],['DISTRITO_DOMICILIO','Distrito','text']
+      ]],
+      ['Fallecimiento y causas',[
+        ['FECHA','Fecha','date'],['ANIO','Año','number'],['MES','Mes','number'],['HORA','Hora','text'],
+        ['DEBIDO_CAUSA_A','Causa A','text'],['CAUSA_A_CIEX','Código CIE-X A','text'],['TIEMPO','Tiempo A','text'],
+        ['DEBIDO_CAUSA_B','Causa B','text'],['CAUSA_B_CIEX','Código CIE-X B','text'],['TIEMPO1','Tiempo B','text'],
+        ['DEBIDO_CAUSA_C','Causa C','text'],['CAUSA_C_CIEX','Código CIE-X C','text'],['TIEMPO2','Tiempo C','text'],
+        ['DEBIDO_CAUSA_D','Causa D','text'],['CAUSA_D_CIEX','Código CIE-X D','text'],['TIEMPO3','Tiempo D','text'],
+        ['DEBIDO_CAUSA_E','Causa E','text'],['CAUSA_E_CIEX','Código CIE-X E','text'],['TIEMPO4','Tiempo E','text'],
+        ['DEBIDO_CAUSA_F','Causa F','text'],['CAUSA_F_CIEX','Código CIE-X F','text'],['TIEMPO5','Tiempo F','text']
+      ]],
+      ['Lugar y registro',[
+        ['TIPO_LUGAR','Tipo de lugar','text'],['CODIGO_LUGAR_UBIGEO','Código de ubicación del lugar','text'],
+        ['CONTINENTE','Continente','text'],['PAIS','País','text'],['INSTITUCION','Institución','text'],['DISA','DISA','text'],
+        ['DEPARTAMENTO','Departamento','text'],['PROVINCIA','Provincia','text'],['DISTRITO','Distrito','text'],
+        ['DESCRIPCION_DE_LUGAR','Descripción del lugar','text'],['DIRECCION_DE_LUGAR','Dirección del lugar','text'],
+        ['MUERTE_VIOLENTA','Muerte violenta','text'],['NECROPSIA','Necropsia','text'],['MUERTE_DURANTE','Muerte durante','text'],
+        ['EDAD_GESTACIONAL','Edad gestacional','text'],['CONTROL_PRENATAL','Control prenatal','text'],
+        ['TIEMPO_DE_HOSPITALIZACION','Tiempo de hospitalización','text'],['TIPO_LUGAR1','Tipo de lugar 2','text'],
+        ['CODIGO_LUGAR_UBIGEO1','Código de ubicación 2','text'],['INSTITUCION1','Institución 2','text'],
+        ['DEPARTAMENTO1','Departamento 2','text'],['DESCRIPCION_DE_LUGAR1','Descripción del lugar 2','text'],
+        ['PRIMER_APELLIDO1','Apellido del certificador','text'],['SEGUNDO_APELLIDO1','Segundo apellido certificador','text'],
+        ['NOMBRES1','Nombres certificador','text'],['TIPO_DOC1','Tipo documento certificador','text'],
+        ['DOCUMENTO1','Documento certificador','text'],['DECLARA','Declara','text'],['NUMERO_COLEGIO','Número de colegio','text'],
+        ['FECHA_REGISTRO','Fecha de registro','date'],['ANIO1','Año registro','number'],['MES1','Mes registro','number'],
+        ['PRIMER_APELLIDO2','Apellido usuario','text'],['SEGUNDO_APELLIDO2','Segundo apellido usuario','text'],
+        ['NOMBRES2','Nombres usuario','text'],['DNI_CODIGO_USUARIO','DNI / código usuario','text']
+      ]]
+    ]
+  }
+};
+
+// Metadatos reales tomados de scripsHis.sql: [longitud_varchar|null, obligatorio(NOT NULL)]
+// Se usan para poner maxlength y marcar como requeridos los campos que la BD no permite dejar vacíos.
+const COLUMN_META = {
+  MaestroPaciente:{Id_Paciente:[50,0],Id_Tipo_Documento_Paciente:[null,0],Numero_Documento_Paciente:[15,0],Apellido_Paterno_Paciente:[50,0],Apellido_Materno_Paciente:[50,0],Nombres_Paciente:[150,0],Fecha_Nacimiento_Paciente:[null,0],Id_Genero:[1,0],Id_Etnia:[2,0],Historia_Clinica:[15,0],Ficha_Familiar:[15,0],Ubigeo_Nacimiento:[6,0],Ubigeo_Reniec:[6,0],Domicilio_Reniec:[250,0],Ubigeo_Declarado:[6,0],Domicilio_Declarado:[250,0],Referencia_Domicilio:[500,0],Id_Pais:[3,0],Id_Establecimiento:[null,0],Fecha_Alta:[null,0],Fecha_Modificacion:[null,0]},
+  MaestroPersonal:{Id_Personal:[50,0],Id_Tipo_Documento_Personal:[null,0],Numero_Documento_Personal:[15,0],Apellido_Paterno_Personal:[50,0],Apellido_Materno_Personal:[50,0],Nombres_Personal:[150,0],Fecha_Nacimiento_Personal:[null,0],Id_Condicion:[2,0],Id_Profesion:[2,0],Id_Colegio:[2,0],Numero_Colegiatura:[20,0],Id_Establecimiento:[null,0],Fecha_Alta:[null,0],Fecha_Baja:[null,0]},
+  NProduccion:{Id_Cita:[50,0],Anio:[4,0],Mes:[2,0],Dia:[2,0],Fecha_Atencion:[null,0],Lote:[3,0],Num_Pag:[null,0],Num_Reg:[null,0],Id_Ups:[6,0],Id_Establecimiento:[null,0],Id_Paciente:[50,0],Id_Personal:[50,0],Id_Registrador:[50,0],Id_Financiador:[2,0],Id_Condicion_Establecimiento:[1,0],Id_Condicion_Servicio:[1,0],Edad_Reg:[null,0],Tipo_Edad:[1,0],Anio_Actual_Paciente:[null,0],Mes_Actual_Paciente:[null,0],Dia_Actual_Paciente:[null,0],Id_Turno:[1,0],Codigo_Item:[15,0],Tipo_Diagnostico:[1,0],Valor_Lab:[5,0],Id_Correlativo_Item:[null,0],Id_Correlativo_Lab:[null,0],Peso:[null,0],Talla:[null,0],Hemoglobina:[null,0],Perimetro_Abdominal:[null,0],Perimetro_Cefalico:[null,0],Id_Otra_Condicion:[null,0],Id_Centro_Poblado:[10,0],Fecha_Ultima_Regla:[null,0],Fecha_Solicitud_Hb:[null,0],Fecha_Resultado_Hb:[null,0],Fecha_Registro:[null,0],Fecha_Modificacion:[null,0],Id_Pais:[3,0],gruporiesgo_desc:[50,0],condicion_gestante:[50,0],Peso_Pregestacional:[null,0],Id_Dosis:[null,0],renipress:[50,0],Id_Institucion_Edu:[10,0],Id_AplicacionOrigen:[null,0],Alerta:[3000,0]},
+  V_SINADEF_AYACUCHO_DOMFALLECIDO:{N:[50,1],TIPO_CDEF:[50,1],CDEF:[null,1],ESTADO:[50,1],TIPO_SEGURO:[50,1],PRIMER_APELLIDO:[50,1],SEGUNDO_APELLIDO:[50,1],NOMBRES:[50,1],TIPO_DOC:[50,1],DOCUMENTO:[50,1],SEXO:[50,1],ETNIA:[50,1],EDAD:[50,0],TIEMPO_EDAD:[50,1],ESTADO_CIVIL:[50,1],NIVEL_DE_INSTRUCCION:[150,1],OCUPACION:[150,1],CODIGO_UBIGEO_DOMICILIO:[150,1],UBIGEO_DOMICILIO:[150,1],DIRECCION_DE_DOMICILIO:[150,1],CONTINENTE_DOMICILIO:[150,1],PAIS_DOMICILIO:[150,1],DEPARTAMENTO_DOMICILIO:[150,1],PROVINCIA_DOMICILIO:[150,1],DISTRITO_DOMICILIO:[150,1],FECHA:[null,1],ANIO:[null,1],MES:[null,1],HORA:[50,1],DEBIDO_CAUSA_A:[null,1],CAUSA_A_CIEX:[150,1],TIEMPO:[150,1],DEBIDO_CAUSA_B:[null,1],CAUSA_B_CIEX:[150,1],TIEMPO1:[150,1],DEBIDO_CAUSA_C:[null,1],CAUSA_C_CIEX:[150,1],TIEMPO2:[150,1],DEBIDO_CAUSA_D:[null,1],CAUSA_D_CIEX:[150,1],TIEMPO3:[150,1],DEBIDO_CAUSA_E:[null,0],CAUSA_E_CIEX:[150,1],TIEMPO4:[150,1],DEBIDO_CAUSA_F:[null,1],CAUSA_F_CIEX:[150,1],TIEMPO5:[150,1],TIPO_LUGAR:[150,1],CODIGO_LUGAR_UBIGEO:[150,1],CONTINENTE:[150,1],PAIS:[150,1],INSTITUCION:[50,1],DISA:[50,1],DEPARTAMENTO:[50,1],PROVINCIA:[50,1],DISTRITO:[50,1],DESCRIPCION_DE_LUGAR:[null,1],DIRECCION_DE_LUGAR:[null,1],MUERTE_VIOLENTA:[150,1],NECROPSIA:[150,1],MUERTE_DURANTE:[150,1],EDAD_GESTACIONAL:[150,1],CONTROL_PRENATAL:[150,1],TIEMPO_DE_HOSPITALIZACION:[150,1],TIPO_LUGAR1:[150,1],CODIGO_LUGAR_UBIGEO1:[150,1],INSTITUCION1:[150,1],DEPARTAMENTO1:[150,1],DESCRIPCION_DE_LUGAR1:[null,1],PRIMER_APELLIDO1:[150,1],SEGUNDO_APELLIDO1:[150,1],NOMBRES1:[150,1],TIPO_DOC1:[150,1],DOCUMENTO1:[150,1],DECLARA:[150,1],NUMERO_COLEGIO:[150,1],FECHA_REGISTRO:[null,1],ANIO1:[null,1],MES1:[null,1],PRIMER_APELLIDO2:[150,1],SEGUNDO_APELLIDO2:[150,1],NOMBRES2:[150,1],DNI_CODIGO_USUARIO:[150,1]}
+};
+
+const catalogs = [
+ ['MAESTRO_HIS_CENTRO_POBLADO','Centros poblados','Id_Centro_Poblado, descripción, código, ubigeo y altitud'],
+ ['MAESTRO_HIS_CIE_CPMS','Diagnósticos y procedimientos','Codigo_Item, descripción, tipo y estado'],
+ ['MAESTRO_HIS_CONDICION_CONTRATO','Condiciones de contrato','Id_Condicion y descripción'],
+ ['MAESTRO_HIS_ESTABLECIMIENTO','Establecimientos','Código, nombre, DISA, red, microred, sector, ubicación y categoría'],
+ ['MAESTRO_HIS_PROFESION','Profesiones','Profesión y colegio'],
+ ['MAESTRO_HIS_SISTEMA','Sistemas','Sistema y lote general'],
+ ['MAESTRO_HIS_UPS','Servicios / UPS','Id_Ups y descripción'],
+ ['MaestroRegistrador','Registradores','Documento, nombres y fecha de nacimiento'],
+ ['MAESTRO_HIS_ACTIVIDAD_HIS','Actividades HIS','Actividad y estado'],
+ ['MAESTRO_HIS_COLEGIO','Colegios profesionales','Descripción del colegio'],
+ ['MAESTRO_HIS_DOSIS','Dosis','Código y descripción'],
+ ['MAESTRO_HIS_ETNIA','Etnias','Código y descripción'],
+ ['MAESTRO_HIS_FINANCIADOR','Financiadores','Código y descripción'],
+ ['MAESTRO_HIS_GRUPORIESGO_LAB','Grupos de riesgo','Grupo, laboratorio y valor'],
+ ['MAESTRO_HIS_INSTITUCION_EDUCATIVA','Instituciones educativas','Código, nombre, dirección, nivel y área'],
+ ['MAESTRO_HIS_LAB','Laboratorios','Código, valor y descripción'],
+ ['MAESTRO_HIS_OTRA_CONDICION','Otras condiciones','Código y descripción'],
+ ['MAESTRO_HIS_PAIS','Países','Código y descripción'],
+ ['MAESTRO_HIS_TIPO_DOC','Tipos de documento','Código, abreviatura y descripción'],
+ ['MAESTRO_HIS_UBIGEO_INEI_RENIEC','Ubicaciones','INEI, RENIEC, departamento, provincia y distrito'],
+ ['MaestroPaciente','Pacientes','Tabla principal de datos del paciente'],
+ ['MaestroPersonal','Personal','Tabla principal de datos del personal'],
+ ['NProduccion','Producción / atenciones','Registro de atenciones HIS'],
+ ['V_SINADEF_AYACUCHO_DOMFALLECIDO','Defunciones SINADEF','Datos de defunción y causas A-F']
+];
+
+const pageInfo = {
+ inicio:['Inicio','Resumen del sistema'], pacientes:['Pacientes','Buscar y consultar información'], atenciones:['Atenciones','Consultar registros de NProduccion'],
+ defunciones:['Defunciones','Consultar SINADEF'], personal:['Personal','Consultar MaestroPersonal'], buscar:['Buscar información','Búsqueda general'],
+ catalogos:['Catálogos','Maestros de la base de datos'], reportes:['Reportes','Consultas y funciones disponibles']
+};
+
+function PageHeader({title,desc,action,form}) {
+ return `<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5">
+   <div><div class="text-[11px] font-black uppercase text-his-700">Principal</div><h1 class="text-2xl font-black mt-1">${title}</h1><p class="text-sm text-slate-500 mt-1">${desc}</p></div>
+   <button class="btn btn-primary" onclick="openForm('${form}')">＋ ${action}</button>
+ </div>`;
+}
+function SearchBox({id,placeholder,button}) {
+ return `<div class="card p-4"><div class="flex flex-col md:flex-row gap-3"><input id="${id}" class="input flex-1" placeholder="${placeholder}"><button class="btn btn-primary" onclick="searchPatientLike('${id}')">🔎 ${button}</button></div><div class="text-[11px] text-slate-400 mt-2">La consulta se enviará a la API cuando SQL Server esté conectado.</div></div>`;
+}
+function ReportCard({title,text,action,onclick}) {
+ return `<div class="card p-5"><div class="font-black">${title}</div><p class="text-xs text-slate-500 mt-2">${text}</p><button class="btn btn-soft mt-5" onclick="${onclick}">${action}</button></div>`;
+}
+
+// --- Renderiza los bloques que antes usaban pseudo-etiquetas JSX (<PageHeader/>, <SearchBox/>, <ReportCard/>),
+// las cuales el navegador NO interpreta como componentes: se quedaban vacías. Ahora se inyectan por JS. ---
+function renderStaticBlocks(){
+  document.getElementById('pacientesHeader').innerHTML = PageHeader({title:'Pacientes',desc:'Busca un paciente y muestra la información que existe en MaestroPaciente y sus atenciones.',action:'Registrar paciente',form:'paciente'});
+  document.getElementById('pacientesSearchBox').innerHTML = SearchBox({id:'patientSearch',placeholder:'ID paciente, DNI, historia clínica o ficha familiar',button:'Buscar paciente'});
+
+  document.getElementById('atencionesHeader').innerHTML = PageHeader({title:'Atenciones',desc:'Consulta registros de NProduccion por cita, paciente, personal o fecha.',action:'Registrar atención',form:'atencion'});
+
+  document.getElementById('defuncionesHeader').innerHTML = PageHeader({title:'Defunciones',desc:'Consulta la tabla V_SINADEF_AYACUCHO_DOMFALLECIDO.',action:'Registrar fallecido',form:'fallecido'});
+
+  document.getElementById('reportCardsGrid').innerHTML = [
+    ReportCard({title:'Atenciones por fechas',text:'Filtra NProduccion por fecha, servicio, establecimiento, paciente, personal o código.',action:'Abrir consulta',onclick:"openReport('atenciones')"}),
+    ReportCard({title:'Historial hospitalario',text:'La BD incluye dbo.Historial_hra(@fechaIncial,@FechaFinal), que relaciona producción con maestros.',action:'Abrir consulta',onclick:"openReport('historial')"}),
+    ReportCard({title:'Defunciones',text:'Consulta registros de V_SINADEF_AYACUCHO_DOMFALLECIDO.',action:'Abrir consulta',onclick:"openReport('defunciones')"})
+  ].join('');
+}
+
+function go(page){
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ document.getElementById(page).classList.add('active');
+ document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+ document.getElementById('headerTitle').textContent=pageInfo[page][0];
+ document.getElementById('headerSubtitle').textContent=pageInfo[page][1];
+ closeMobile();
+}
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+document.getElementById('menuBtn').onclick=()=>document.getElementById('sidebar').classList.add('open');
+document.getElementById('mobileOverlay').onclick=closeMobile;
+function closeMobile(){document.getElementById('sidebar').classList.remove('open')}
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function showNoConnection(box,title){
+ document.getElementById(box).innerHTML=`<div class="empty"><div class="text-3xl mb-2">⌁</div><div class="font-black text-slate-600">${title}</div><p class="text-xs mt-2">No hay datos cargados en esta interfaz. Cuando conectes el backend, esta sección consultará SQL Server y mostrará los registros reales.</p></div>`;
+}
+
+async function api(path,options={}){
+ if(!API_BASE) throw new Error('API_BASE no configurado');
+ const r=await fetch(API_BASE+path,{headers:{'Content-Type':'application/json'},...options});
+ if(!r.ok) throw new Error('Error HTTP '+r.status);
+ return r.json();
+}
+
+// Caché de entidades para evitar volcar JSON crudo dentro de atributos onclick (se rompía con comillas/tildes en los datos)
+let entityCache = [];
+function cacheEntity(x){ entityCache.push(x); return entityCache.length-1; }
+
+async function searchStaff(){
+  const q=document.getElementById('staffSearch').value.trim();
+  const mode=document.getElementById('staffSearchMode').value;
+  if(!q){toast('Escribe un ID, documento o nombre para buscar.');return}
+
+  if(DEMO_SIN_DATOS || !API_BASE){
+    document.getElementById('staffResult').innerHTML = `
+      <div class="card p-5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-11 h-11 rounded-xl bg-purple-100 text-his-800 grid place-items-center text-xl">♟</div>
+          <div>
+            <div class="font-black">Consulta preparada</div>
+            <div class="text-xs text-slate-500">Búsqueda: ${esc(q)} · Modo: ${esc(mode)}</div>
+          </div>
+        </div>
+        <div class="empty">
+          <div class="text-3xl mb-2">⌁</div>
+          <div class="font-black text-slate-600">Aquí aparecerá la ficha completa del personal</div>
+          <p class="text-xs mt-2 max-w-2xl mx-auto">
+            Al conectar la API con SQL Server se consultará MaestroPersonal y se mostrarán
+            los datos personales, documento, profesión, colegio, colegiatura, condición,
+            establecimiento, fechas y las atenciones relacionadas.
+          </p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  try{
+    const data=await api('/api/personal?q='+encodeURIComponent(q)+'&modo='+encodeURIComponent(mode));
+    document.getElementById('staffResult').innerHTML=renderStaffDirectory(data);
+  }catch(e){errorBox('staffResult',e.message)}
+}
+
+function renderStaffDirectory(data){
+  const arr=Array.isArray(data)?data:(data.items||data.results||[]);
+  if(!arr.length)return '<div class="empty">No se encontraron registros de personal.</div>';
+
+  return `<div class="card overflow-hidden">
+    <div class="p-4 border-b flex justify-between">
+      <div><div class="font-black">Resultados de personal</div><div class="text-xs text-slate-500 mt-1">${arr.length} registro(s)</div></div>
+    </div>
+    <div class="overflow-auto">
+      <table class="min-w-[1100px] w-full text-xs">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="p-3 text-left">ID</th>
+            <th class="p-3 text-left">Documento</th>
+            <th class="p-3 text-left">Apellidos</th>
+            <th class="p-3 text-left">Nombres</th>
+            <th class="p-3 text-left">Profesión</th>
+            <th class="p-3 text-left">Colegio</th>
+            <th class="p-3 text-left">Colegiatura</th>
+            <th class="p-3 text-left">Condición</th>
+            <th class="p-3 text-left">Establecimiento</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${arr.map(x=>`<tr class="border-t hover:bg-slate-50 cursor-pointer" onclick="openEntity(${cacheEntity(x)},'personal')">
+            <td class="p-3 font-bold">${esc(x.Id_Personal)}</td>
+            <td class="p-3">${esc(x.Numero_Documento_Personal)}</td>
+            <td class="p-3">${esc([x.Apellido_Paterno_Personal,x.Apellido_Materno_Personal].filter(Boolean).join(' '))}</td>
+            <td class="p-3">${esc(x.Nombres_Personal)}</td>
+            <td class="p-3">${esc(x.Profesion||x.Id_Profesion)}</td>
+            <td class="p-3">${esc(x.Colegio||x.Id_Colegio)}</td>
+            <td class="p-3">${esc(x.Numero_Colegiatura)}</td>
+            <td class="p-3">${esc(x.Condicion||x.Id_Condicion)}</td>
+            <td class="p-3">${esc(x.Establecimiento||x.Id_Establecimiento)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+async function searchPatientLike(inputId){
+ const q=document.getElementById(inputId).value.trim();
+ const target=inputId==='patientSearch'?'patientResult':'staffResult';
+ if(!q){toast('Escribe un dato para buscar.');return}
+ if(DEMO_SIN_DATOS || !API_BASE){showNoConnection(target,'Consulta preparada: '+esc(q));return}
+ try{
+   const type=inputId==='patientSearch'?'pacientes':'personal';
+   const data=await api('/api/'+type+'?q='+encodeURIComponent(q));
+   document.getElementById(target).innerHTML=renderSearchResults(data,type);
+ }catch(e){errorBox(target,e.message)}
+}
+function renderSearchResults(data,type){
+ const arr=Array.isArray(data)?data:(data.items||data.results||[]);
+ if(!arr.length)return `<div class="empty">No se encontraron resultados.</div>`;
+ return `<div class="card overflow-hidden"><div class="p-4 border-b font-black">Resultados encontrados</div><div class="divide-y">${arr.map(x=>`<button class="w-full text-left p-4 hover:bg-slate-50" onclick="openEntity(${cacheEntity(x)}, '${type}')"><div class="font-black">${esc(x.Nombres_Paciente||x.Nombres_Personal||x.nombre||x.NOMBRES||'Registro')}</div><div class="text-xs text-slate-500 mt-1">${esc(x.Id_Paciente||x.Id_Personal||x.id||x.DOCUMENTO||'')}</div></button>`).join('')}</div></div>`;
+}
+function openEntity(idx,type){
+ const data=entityCache[idx];
+ const target=type==='pacientes'?'patientResult':'staffResult';
+ document.getElementById(target).innerHTML=renderEntity(data,type);
+}
+function renderEntity(x,type){
+ if(type==='pacientes'){
+   const name=[x.Apellido_Paterno_Paciente,x.Apellido_Materno_Paciente,x.Nombres_Paciente].filter(Boolean).join(' ');
+   return `<div class="card p-5">
+    <div class="flex flex-col md:flex-row md:justify-between gap-3 border-b pb-4 mb-4">
+      <div><div class="text-[10px] font-black uppercase text-his-700">Ficha del paciente</div><h2 class="text-xl font-black mt-1">${esc(name||'Paciente')}</h2><p class="text-xs text-slate-500">ID: ${esc(x.Id_Paciente)}</p></div>
+      <span class="pill bg-green-50 text-green-700 self-start">Registro encontrado</span>
+    </div>
+    ${kvGroup('Datos personales',x,['Id_Paciente','Id_Tipo_Documento_Paciente','Numero_Documento_Paciente','Apellido_Paterno_Paciente','Apellido_Materno_Paciente','Nombres_Paciente','Fecha_Nacimiento_Paciente','Id_Genero','Id_Etnia'])}
+    ${kvGroup('Historia y ubicación',x,['Historia_Clinica','Ficha_Familiar','Ubigeo_Nacimiento','Ubigeo_Reniec','Domicilio_Reniec','Ubigeo_Declarado','Domicilio_Declarado','Referencia_Domicilio','Id_Pais','Id_Establecimiento','Fecha_Alta','Fecha_Modificacion'])}
+    <div class="mt-6 flex flex-wrap gap-2"><button class="btn btn-soft" onclick="loadPatientAttention('${esc(x.Id_Paciente)}')">Ver atenciones</button><button class="btn btn-light" onclick="openForm('paciente')">Editar / registrar</button></div>
+    <div id="patientAttentionDetail" class="mt-5"></div>
+   </div>`;
+ }
+ return `<div class="card p-5">
+   <div class="border-b pb-4 mb-4"><div class="text-[10px] font-black uppercase text-his-700">Ficha del personal</div><h2 class="text-xl font-black mt-1">${esc([x.Apellido_Paterno_Personal,x.Apellido_Materno_Personal,x.Nombres_Personal].filter(Boolean).join(' ')||'Personal')}</h2><p class="text-xs text-slate-500">ID: ${esc(x.Id_Personal)}</p></div>
+   ${kvGroup('Datos personales',x,['Id_Personal','Id_Tipo_Documento_Personal','Numero_Documento_Personal','Apellido_Paterno_Personal','Apellido_Materno_Personal','Nombres_Personal','Fecha_Nacimiento_Personal'])}
+   ${kvGroup('Información laboral',x,['Id_Condicion','Id_Profesion','Id_Colegio','Numero_Colegiatura','Id_Establecimiento','Fecha_Alta','Fecha_Baja'])}
+   <div class="mt-6"><button class="btn btn-soft" onclick="loadStaffAttention('${esc(x.Id_Personal)}')">Ver atenciones</button></div>
+   <div id="staffAttentionDetail" class="mt-5"></div>
+ </div>`;
+}
+function kvGroup(title,obj,fields){
+ return `<div class="mb-5"><div class="section-title mb-2">${title}</div><div>${fields.map(f=>`<div class="kv"><div class="kv-key">${pretty(f)}</div><div>${obj[f]===null||obj[f]===undefined||obj[f]===''?'<span class="text-slate-300">Sin dato</span>':esc(obj[f])}</div></div>`).join('')}</div></div>`;
+}
+function pretty(s){
+ return s.replace(/^Id_/,'').replaceAll('_',' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/\b\w/g,m=>m.toUpperCase());
+}
+
+async function loadPatientAttention(id){
+ const box=document.getElementById('patientAttentionDetail');
+ if(DEMO_SIN_DATOS||!API_BASE){box.innerHTML=tableEmpty('Atenciones del paciente','Se cargarán desde NProduccion usando Id_Paciente.');return}
+ try{const d=await api('/api/pacientes/'+encodeURIComponent(id)+'/atenciones');box.innerHTML=renderAttentionTable(d)}
+ catch(e){errorBox('patientAttentionDetail',e.message)}
+}
+async function loadStaffAttention(id){
+ const box=document.getElementById('staffAttentionDetail');
+ if(DEMO_SIN_DATOS||!API_BASE){box.innerHTML=tableEmpty('Atenciones del personal','Se cargarán desde NProduccion usando Id_Personal.');return}
+ try{const d=await api('/api/atenciones?personal='+encodeURIComponent(id));box.innerHTML=renderAttentionTable(d)}
+ catch(e){errorBox('staffAttentionDetail',e.message)}
+}
+function renderAttentionTable(data){
+ const arr=Array.isArray(data)?data:(data.items||[]);
+ if(!arr.length)return tableEmpty('Atenciones','No se encontraron registros.');
+ return `<div class="border rounded-xl overflow-auto"><table class="min-w-[900px] w-full text-xs"><thead class="bg-slate-50"><tr><th class="p-3 text-left">Cita</th><th class="p-3 text-left">Fecha</th><th class="p-3 text-left">Paciente</th><th class="p-3 text-left">Personal</th><th class="p-3 text-left">Servicio</th><th class="p-3 text-left">Código</th><th class="p-3 text-left">Diagnóstico</th><th class="p-3 text-left">Hb</th></tr></thead><tbody>${arr.map(a=>`<tr class="border-t"><td class="p-3">${esc(a.Cita||a.Id_Cita)}</td><td class="p-3">${esc(a.Fecha_Atencion)}</td><td class="p-3">${esc(a.Paciente||a.Id_Paciente)}</td><td class="p-3">${esc(a.Personal||a.Id_Personal)}</td><td class="p-3">${esc(a.Servicio||a.Id_Ups)}</td><td class="p-3">${esc(a.codigo||a.Codigo_Item)}</td><td class="p-3">${esc(a.DescItem)}</td><td class="p-3">${esc(a.Hemoglobina)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function tableEmpty(title,msg){return `<div><div class="section-title mb-2">${title}</div><div class="empty">${msg}</div></div>`}
+
+async function searchAttention(){
+ const q=document.getElementById('attentionSearch').value.trim();
+ const mode=document.getElementById('attentionMode').value;
+ const from=document.getElementById('attentionFrom').value;
+ const to=document.getElementById('attentionTo').value;
+ if(!q && !from && !to){toast('Indica un dato o un rango de fechas.');return}
+ if(DEMO_SIN_DATOS||!API_BASE){showNoConnection('attentionResult','Consulta de NProduccion preparada');return}
+ try{
+  let url='/api/atenciones?modo='+encodeURIComponent(mode)+'&q='+encodeURIComponent(q);
+  if(from)url+='&desde='+from;if(to)url+='&hasta='+to;
+  document.getElementById('attentionResult').innerHTML=renderAttentionTable(await api(url));
+ }catch(e){errorBox('attentionResult',e.message)}
+}
+
+async function searchDeath(){
+ const q=document.getElementById('deathSearch').value.trim();
+ const mode=document.getElementById('deathMode').value;
+ if(!q){toast('Escribe un dato para buscar.');return}
+ if(DEMO_SIN_DATOS||!API_BASE){showNoConnection('deathResult','Consulta de V_SINADEF_AYACUCHO_DOMFALLECIDO preparada');return}
+ try{
+  const d=await api('/api/defunciones?modo='+encodeURIComponent(mode)+'&q='+encodeURIComponent(q));
+  document.getElementById('deathResult').innerHTML=renderDeath(d);
+ }catch(e){errorBox('deathResult',e.message)}
+}
+function renderDeath(data){
+ const arr=Array.isArray(data)?data:(data.items||[]);
+ if(!arr.length)return `<div class="empty">No se encontraron defunciones.</div>`;
+ return `<div class="space-y-4">${arr.map(x=>`<div class="card p-5">
+  ${kvGroup('Persona',x,['N','TIPO_CDEF','CDEF','ESTADO','TIPO_SEGURO','PRIMER_APELLIDO','SEGUNDO_APELLIDO','NOMBRES','TIPO_DOC','DOCUMENTO','SEXO','ETNIA','EDAD','TIEMPO_EDAD','ESTADO_CIVIL','NIVEL_DE_INSTRUCCION','OCUPACION'])}
+  ${kvGroup('Fallecimiento',x,['FECHA','ANIO','MES','HORA','DEBIDO_CAUSA_A','CAUSA_A_CIEX','TIEMPO','DEBIDO_CAUSA_B','CAUSA_B_CIEX','TIEMPO1','DEBIDO_CAUSA_C','CAUSA_C_CIEX','TIEMPO2','DEBIDO_CAUSA_D','CAUSA_D_CIEX','TIEMPO3','DEBIDO_CAUSA_E','CAUSA_E_CIEX','TIEMPO4','DEBIDO_CAUSA_F','CAUSA_F_CIEX','TIEMPO5'])}
+  ${kvGroup('Lugar y registro',x,['TIPO_LUGAR','CODIGO_LUGAR_UBIGEO','PAIS','INSTITUCION','DISA','DEPARTAMENTO','PROVINCIA','DISTRITO','DESCRIPCION_DE_LUGAR','DIRECCION_DE_LUGAR','MUERTE_VIOLENTA','NECROPSIA','MUERTE_DURANTE','EDAD_GESTACIONAL','CONTROL_PRENATAL','TIEMPO_DE_HOSPITALIZACION','FECHA_REGISTRO','DNI_CODIGO_USUARIO'])}
+ </div>`).join('')}</div>`;
+}
+
+async function globalLookup(){
+ const q=document.getElementById('globalSearch').value.trim();
+ const type=document.getElementById('globalType').value;
+ if(!q){toast('Escribe algo para buscar.');return}
+ if(DEMO_SIN_DATOS||!API_BASE){showNoConnection('globalResult','Búsqueda universal preparada');return}
+ try{
+  const d=await api('/api/busqueda?q='+encodeURIComponent(q)+'&tipo='+encodeURIComponent(type));
+  document.getElementById('globalResult').innerHTML=renderUniversal(d);
+ }catch(e){errorBox('globalResult',e.message)}
+}
+function renderUniversal(d){
+ const groups=d.groups||d;
+ return `<div class="grid lg:grid-cols-2 gap-4">${Object.entries(groups).map(([k,v])=>`<div class="card p-5"><div class="font-black">${pretty(k)}</div><div class="mt-3 space-y-2">${(Array.isArray(v)?v:[]).slice(0,8).map(x=>`<div class="p-3 rounded-lg bg-slate-50 text-xs">${esc(JSON.stringify(x))}</div>`).join('')||'<div class="text-xs text-slate-400">Sin resultados</div>'}</div></div>`).join('')}</div>`;
+}
+
+function buildCatalogs(){
+ const icons=['⌂','🩺','📄','🏥','👨‍⚕️','⚙','▣','♟','📋','🎓','💊','👥','💳','⚠','🏫','🧪','＋','🌎','🪪','📍','🏥','♙','♟','▤','⚕'];
+ document.getElementById('catalogGrid').innerHTML=catalogs.map((c,i)=>`<button class="card p-5 text-left hover:border-purple-300" onclick="openCatalog(${i})"><div class="text-xl">${icons[i]||'▤'}</div><div class="font-black mt-3">${c[1]}</div><div class="text-xs text-slate-500 mt-1">${c[2]}</div><div class="text-[10px] text-his-700 font-bold mt-3">${c[0]}</div></button>`).join('');
+}
+async function openCatalog(i){
+ const [table,title,desc]=catalogs[i];
+ const p=document.getElementById('catalogPanel');p.classList.remove('hidden');
+ p.innerHTML=`<div class="flex justify-between gap-3"><div><div class="text-[10px] font-black text-his-700 uppercase">${table}</div><div class="font-black mt-1">${title}</div><div class="text-xs text-slate-500 mt-1">${desc}</div></div><button onclick="document.getElementById('catalogPanel').classList.add('hidden')">✕</button></div>
+ <div class="flex gap-2 mt-4"><input id="catalogSearch" class="input" placeholder="Buscar en este catálogo"><button class="btn btn-primary" onclick="queryCatalog('${esc(table)}')">Buscar</button></div><div id="catalogResults" class="mt-4"></div>`;
+}
+async function queryCatalog(table){
+ const q=document.getElementById('catalogSearch').value.trim();
+ if(DEMO_SIN_DATOS||!API_BASE){showNoConnection('catalogResults','Catálogo '+table);return}
+ try{const d=await api('/api/catalogos/'+encodeURIComponent(table)+'?q='+encodeURIComponent(q));document.getElementById('catalogResults').innerHTML=renderCatalog(d)}
+ catch(e){errorBox('catalogResults',e.message)}
+}
+function renderCatalog(d){
+ const arr=Array.isArray(d)?d:(d.items||[]);
+ if(!arr.length)return '<div class="empty">No se encontraron registros.</div>';
+ const keys=Object.keys(arr[0]);
+ return `<div class="border rounded-xl overflow-auto"><table class="min-w-[700px] w-full text-xs"><thead class="bg-slate-50"><tr>${keys.map(k=>`<th class="p-3 text-left">${pretty(k)}</th>`).join('')}</tr></thead><tbody>${arr.map(x=>`<tr class="border-t">${keys.map(k=>`<td class="p-3">${esc(x[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function openReport(type){
+ const p=document.getElementById('reportPanel');p.classList.remove('hidden');
+ if(type==='historial'){
+  p.innerHTML=`<div class="font-black">Historial_hra</div><p class="text-xs text-slate-500 mt-1">La BD define dbo.Historial_hra(@fechaIncial,@FechaFinal).</p>
+  <div class="grid md:grid-cols-2 gap-3 mt-4"><label class="label">Fecha inicial<input id="histFrom" type="date" class="input"></label><label class="label">Fecha final<input id="histTo" type="date" class="input"></label></div>
+  <button class="btn btn-primary mt-4" onclick="runHistory()">Consultar historial</button><div id="historyResult" class="mt-4"></div>`;
+ } else {
+  p.innerHTML=`<div class="font-black">Consulta de ${esc(type)}</div><p class="text-xs text-slate-500 mt-1">El backend podrá ejecutar la consulta y devolver los datos para exportación.</p><div class="empty mt-4">Preparado para conexión.</div>`;
+ }
+}
+async function runHistory(){
+ const f=document.getElementById('histFrom').value,t=document.getElementById('histTo').value;
+ if(!f||!t){toast('Selecciona ambas fechas.');return}
+ if(DEMO_SIN_DATOS||!API_BASE){showNoConnection('historyResult','Historial_hra');return}
+ try{document.getElementById('historyResult').innerHTML=renderCatalog(await api('/api/reportes/historial?desde='+f+'&hasta='+t));}
+ catch(e){errorBox('historyResult',e.message)}
+}
+
+function openForm(type){
+ const cfg=schema[type];document.getElementById('modalTitle').textContent=cfg.title;
+ document.getElementById('modal').classList.remove('hidden');document.getElementById('modal').classList.add('flex');
+ const meta=COLUMN_META[cfg.table]||{};
+ const hint=`<div class="mb-4 p-3 rounded-xl bg-purple-50 border border-purple-100 text-purple-800 text-xs">Tabla real: <b>${cfg.table}</b>. Los campos marcados con <b>*</b> son obligatorios (NOT NULL) en la base de datos.</div>`;
+ document.getElementById('formBody').innerHTML=hint+cfg.sections.map(([title,fields])=>`<div class="border rounded-2xl p-4 mb-4"><div class="section-title mb-4">${title}</div><div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">${fields.map(([name,label,type])=>{
+   const m=meta[name]||[null,0];
+   const maxlen=(type==='text'||type==='textarea')&&m[0]?` maxlength="${m[0]}"`:'';
+   const req=m[1]?' required':'';
+   const mark=m[1]?' <span class="text-red-500">*</span>':'';
+   return type==='textarea'?`<label class="label md:col-span-2 xl:col-span-3">${label}${mark}<textarea name="${name}" class="input min-h-[90px]"${maxlen}${req}></textarea></label>`:`<label class="label">${label}${mark}<input name="${name}" type="${type}" class="input"${maxlen}${req}></label>`;
+ }).join('')}</div></div>`).join('');
+}
+function closeModal(){document.getElementById('modal').classList.add('hidden');document.getElementById('modal').classList.remove('flex')}
+document.getElementById('recordForm').onsubmit=async e=>{
+ e.preventDefault();
+ const form=new FormData(e.target), obj=Object.fromEntries(form.entries());
+ const type=document.getElementById('modalTitle').textContent;
+ if(DEMO_SIN_DATOS||!API_BASE){closeModal();toast('Formulario preparado. El guardado se hará al conectar el backend.');return}
+ // El backend decidirá la tabla según el endpoint de registro.
+};
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+function errorBox(id,msg){document.getElementById(id).innerHTML=`<div class="empty text-red-500">No se pudo realizar la consulta.<div class="text-xs mt-2">${esc(msg)}</div></div>`}
+function toast(msg){const x=document.createElement('div');x.className='fixed right-4 bottom-4 z-[70] bg-slate-900 text-white px-4 py-3 rounded-xl text-sm shadow-xl';x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),3000)}
+
+renderStaticBlocks();
+buildCatalogs();
+</script>
+</body>
+</html>

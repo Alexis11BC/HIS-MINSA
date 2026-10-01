@@ -1,0 +1,184 @@
+# Prompt para Antigravity — Backend HIS (Node.js + Express + SQL Server)
+
+Copia y pega todo el bloque de abajo (desde "## CONTEXTO" hasta el final) directamente en Antigravity.
+
+---
+
+## CONTEXTO
+
+Ya existe un **frontend HTML5/CSS3/JavaScript (ES6+ Vanilla)** de un sistema hospitalario (HIS) que consume una API REST todavía no construida. Tu tarea es generar **solo el backend** (y la capa de conexión a base de datos) que ese frontend necesita, respetando exactamente el contrato de API que ya está escrito en el HTML.
+
+El frontend hace `fetch()` a estas rutas (no las cambies, el frontend ya las llama así):
+
+```
+GET  /api/pacientes?q=...
+GET  /api/pacientes/:id
+GET  /api/pacientes/:id/atenciones
+GET  /api/personal?q=...&modo=todo|id|documento|nombre
+GET  /api/personal/:id
+GET  /api/atenciones?modo=cita|paciente|personal|codigo&q=...&desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+GET  /api/atenciones?personal=:idPersonal      (usado para "ver atenciones" de un trabajador)
+GET  /api/defunciones?modo=documento|n|cdef|nombre&q=...
+GET  /api/busqueda?q=...&tipo=todo|paciente|personal|atencion|defuncion
+GET  /api/catalogos/:tabla?q=...
+GET  /api/reportes/historial?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+POST /api/pacientes
+POST /api/personal
+POST /api/atenciones
+POST /api/defunciones
+```
+
+El frontend espera que las respuestas de listados sean **un array plano** o un objeto `{ items: [...] }` (ambos formatos están soportados en el JS del cliente, pero preferir array plano). Los objetos que hace `openEntity`/`renderEntity` deben tener **exactamente** los mismos nombres de columna que la base de datos (ver esquema abajo), sin renombrarlos ni transformarlos a camelCase.
+
+---
+
+## STACK TECNOLÓGICO (obligatorio, no cambiar)
+
+**Frontend** (ya existe, no lo regeneres, solo intégralo):
+- HTML5, CSS3, JavaScript ES6+ Vanilla, Fetch API.
+
+**Backend:**
+- Node.js (LTS más reciente).
+- Express.js para la API REST (rutas, controladores, middleware).
+- NPM para dependencias.
+- Driver oficial **`mssql`** (npm package `mssql`, sobre `tedious`) para conectar con SQL Server. No usar Prisma ni TypeORM: usar consultas parametrizadas directas con `mssql` (`request.input(...)`) para evitar SQL Injection.
+
+**Base de datos:**
+- Microsoft SQL Server 2022, base de datos `BDHIS_HRA` (nombre exacto usado por `USE [BDHIS_HRA]` en el script original).
+
+---
+
+## ESTRUCTURA DE CARPETAS ESPERADA
+
+```
+his-backend/
+├── src/
+│   ├── config/
+│   │   └── db.js                 # Pool de conexión mssql (config desde .env)
+│   ├── routes/
+│   │   ├── pacientes.routes.js
+│   │   ├── personal.routes.js
+│   │   ├── atenciones.routes.js
+│   │   ├── defunciones.routes.js
+│   │   ├── busqueda.routes.js
+│   │   ├── catalogos.routes.js
+│   │   └── reportes.routes.js
+│   ├── controllers/
+│   │   ├── pacientes.controller.js
+│   │   ├── personal.controller.js
+│   │   ├── atenciones.controller.js
+│   │   ├── defunciones.controller.js
+│   │   ├── busqueda.controller.js
+│   │   ├── catalogos.controller.js
+│   │   └── reportes.controller.js
+│   ├── middleware/
+│   │   ├── errorHandler.js
+│   │   └── validate.js           # Validación según longitudes/obligatoriedad reales (ver esquema)
+│   ├── utils/
+│   │   └── sqlIdentifierWhitelist.js  # Whitelist de tablas válidas para /api/catalogos/:tabla
+│   └── app.js
+├── server.js
+├── .env.example
+├── package.json
+└── README.md
+```
+
+---
+
+## ESQUEMA REAL DE LA BASE DE DATOS
+
+Usa **exactamente** estos nombres de tabla y columnas (extraídos del script `scripsHis.sql`, base `BDHIS_HRA`). No inventes columnas que no estén aquí ni cambies mayúsculas/minúsculas.
+
+### Tablas principales (con CRUD desde el frontend)
+
+**MaestroPaciente** (todas las columnas son NULL, no hay PK declarada — trátalo como tabla sin identity):
+`Id_Paciente varchar(50)`, `Id_Tipo_Documento_Paciente int`, `Numero_Documento_Paciente varchar(15)`, `Apellido_Paterno_Paciente varchar(50)`, `Apellido_Materno_Paciente varchar(50)`, `Nombres_Paciente varchar(150)`, `Fecha_Nacimiento_Paciente date`, `Id_Genero varchar(1)`, `Id_Etnia varchar(2)`, `Historia_Clinica varchar(15)`, `Ficha_Familiar varchar(15)`, `Ubigeo_Nacimiento varchar(6)`, `Ubigeo_Reniec varchar(6)`, `Domicilio_Reniec varchar(250)`, `Ubigeo_Declarado varchar(6)`, `Domicilio_Declarado varchar(250)`, `Referencia_Domicilio varchar(500)`, `Id_Pais varchar(3)`, `Id_Establecimiento int`, `Fecha_Alta datetime`, `Fecha_Modificacion datetime`.
+
+**MaestroPersonal**:
+`Id_Personal varchar(50)`, `Id_Tipo_Documento_Personal int`, `Numero_Documento_Personal varchar(15)`, `Apellido_Paterno_Personal varchar(50)`, `Apellido_Materno_Personal varchar(50)`, `Nombres_Personal varchar(150)`, `Fecha_Nacimiento_Personal date`, `Id_Condicion varchar(2)`, `Id_Profesion varchar(2)`, `Id_Colegio varchar(2)`, `Numero_Colegiatura varchar(20)`, `Id_Establecimiento int`, `Fecha_Alta datetime`, `Fecha_Baja datetime`.
+
+**NProduccion** (atenciones/citas):
+`Id_Cita varchar(50)`, `Anio varchar(4)`, `Mes varchar(2)`, `Dia varchar(2)`, `Fecha_Atencion date`, `Lote varchar(3)`, `Num_Pag int`, `Num_Reg int`, `Id_Ups varchar(6)`, `Id_Establecimiento int`, `Id_Paciente varchar(50)`, `Id_Personal varchar(50)`, `Id_Registrador varchar(50)`, `Id_Financiador varchar(2)`, `Id_Condicion_Establecimiento varchar(1)`, `Id_Condicion_Servicio varchar(1)`, `Edad_Reg int`, `Tipo_Edad varchar(1)`, `Anio_Actual_Paciente int`, `Mes_Actual_Paciente int`, `Dia_Actual_Paciente int`, `Id_Turno varchar(1)`, `Codigo_Item varchar(15)`, `Tipo_Diagnostico varchar(1)`, `Valor_Lab varchar(5)`, `Id_Correlativo_Item int`, `Id_Correlativo_Lab int`, `Peso decimal(10,3)`, `Talla decimal(10,2)`, `Hemoglobina decimal(6,2)`, `Perimetro_Abdominal decimal(10,2)`, `Perimetro_Cefalico decimal(10,2)`, `Id_Otra_Condicion int`, `Id_Centro_Poblado varchar(10)`, `Fecha_Ultima_Regla date`, `Fecha_Solicitud_Hb date`, `Fecha_Resultado_Hb date`, `Fecha_Registro datetime`, `Fecha_Modificacion datetime`, `Id_Pais varchar(3)`, `gruporiesgo_desc varchar(50)`, `condicion_gestante varchar(50)`, `Peso_Pregestacional decimal(10,2)`, `Id_Dosis int`, `renipress varchar(50)`, `Id_Institucion_Edu varchar(10)`, `Id_AplicacionOrigen int`, `Alerta varchar(3000)`.
+
+**V_SINADEF_AYACUCHO_DOMFALLECIDO** (defunciones — casi todas las columnas son `NOT NULL`, solo `EDAD` y `DEBIDO_CAUSA_E` permiten NULL):
+`N varchar(50)`, `TIPO_CDEF nvarchar(50)`, `CDEF varchar(max)`, `ESTADO nvarchar(50)`, `TIPO_SEGURO nvarchar(50)`, `PRIMER_APELLIDO nvarchar(50)`, `SEGUNDO_APELLIDO nvarchar(50)`, `NOMBRES nvarchar(50)`, `TIPO_DOC nvarchar(50)`, `DOCUMENTO nvarchar(50)`, `SEXO nvarchar(50)`, `ETNIA nvarchar(50)`, `EDAD nvarchar(50) NULL`, `TIEMPO_EDAD nvarchar(50)`, `ESTADO_CIVIL nvarchar(50)`, `NIVEL_DE_INSTRUCCION nvarchar(150)`, `OCUPACION nvarchar(150)`, `CODIGO_UBIGEO_DOMICILIO nvarchar(150)`, `UBIGEO_DOMICILIO nvarchar(150)`, `DIRECCION_DE_DOMICILIO nvarchar(150)`, `CONTINENTE_DOMICILIO nvarchar(150)`, `PAIS_DOMICILIO nvarchar(150)`, `DEPARTAMENTO_DOMICILIO nvarchar(150)`, `PROVINCIA_DOMICILIO nvarchar(150)`, `DISTRITO_DOMICILIO nvarchar(150)`, `FECHA date`, `ANIO int`, `MES int`, `HORA nvarchar(50)`, `DEBIDO_CAUSA_A varchar(max)`, `CAUSA_A_CIEX nvarchar(150)`, `TIEMPO nvarchar(150)`, `DEBIDO_CAUSA_B varchar(max)`, `CAUSA_B_CIEX nvarchar(150)`, `TIEMPO1 nvarchar(150)`, `DEBIDO_CAUSA_C varchar(max)`, `CAUSA_C_CIEX nvarchar(150)`, `TIEMPO2 nvarchar(150)`, `DEBIDO_CAUSA_D varchar(max)`, `CAUSA_D_CIEX nvarchar(150)`, `TIEMPO3 nvarchar(150)`, `DEBIDO_CAUSA_E varchar(max) NULL`, `CAUSA_E_CIEX nvarchar(150)`, `TIEMPO4 nvarchar(150)`, `DEBIDO_CAUSA_F varchar(max)`, `CAUSA_F_CIEX nvarchar(150)`, `TIEMPO5 nvarchar(150)`, `TIPO_LUGAR nvarchar(150)`, `CODIGO_LUGAR_UBIGEO nvarchar(150)`, `CONTINENTE nvarchar(150)`, `PAIS nvarchar(150)`, `INSTITUCION nvarchar(50)`, `DISA nvarchar(50)`, `DEPARTAMENTO nvarchar(50)`, `PROVINCIA nvarchar(50)`, `DISTRITO nvarchar(50)`, `DESCRIPCION_DE_LUGAR varchar(max)`, `DIRECCION_DE_LUGAR varchar(max)`, `MUERTE_VIOLENTA nvarchar(150)`, `NECROPSIA nvarchar(150)`, `MUERTE_DURANTE nvarchar(150)`, `EDAD_GESTACIONAL nvarchar(150)`, `CONTROL_PRENATAL nvarchar(150)`, `TIEMPO_DE_HOSPITALIZACION nvarchar(150)`, `TIPO_LUGAR1 nvarchar(150)`, `CODIGO_LUGAR_UBIGEO1 nvarchar(150)`, `INSTITUCION1 nvarchar(150)`, `DEPARTAMENTO1 nvarchar(150)`, `DESCRIPCION_DE_LUGAR1 varchar(max)`, `PRIMER_APELLIDO1 nvarchar(150)`, `SEGUNDO_APELLIDO1 nvarchar(150)`, `NOMBRES1 nvarchar(150)`, `TIPO_DOC1 nvarchar(150)`, `DOCUMENTO1 nvarchar(150)`, `DECLARA nvarchar(150)`, `NUMERO_COLEGIO nvarchar(150)`, `FECHA_REGISTRO date`, `ANIO1 int`, `MES1 int`, `PRIMER_APELLIDO2 nvarchar(150)`, `SEGUNDO_APELLIDO2 nvarchar(150)`, `NOMBRES2 nvarchar(150)`, `DNI_CODIGO_USUARIO nvarchar(150)`.
+
+### Tablas maestro / catálogo (solo lectura vía `/api/catalogos/:tabla`)
+
+- `MAESTRO_HIS_CENTRO_POBLADO` (Id_Centro_Poblado, Descripcion_Centro_Poblado, Id_Codigo_Centro_Poblado, Id_Ubigueo_Centro_Poblado, Altitud_Centro_Poblado)
+- `MAESTRO_HIS_CIE_CPMS` (Codigo_Item, Descripcion_Item, Fg_Tipo, Descripcion_Tipo_Item, Fg_Estado)
+- `MAESTRO_HIS_CONDICION_CONTRATO` (Id_Condicion, Descripcion_Condicion)
+- `MAESTRO_HIS_ESTABLECIMIENTO` (Id_Establecimiento, Nombre_Establecimiento, Ubigueo_Establecimiento, Codigo_Disa, Disa, Codigo_Red, Red, Codigo_MicroRed, MicroRed, Codigo_Unico, Codigo_Sector, Descripcion_Sector, Departamento, Provincia, Distrito, Categoria_Establecimiento)
+- `MAESTRO_HIS_PROFESION` (Id_Profesion, Descripcion_Profesion, Id_Colegio)
+- `MAESTRO_HIS_SISTEMA` (Id_Sistema, Descripcion_Sistema, Lote_General)
+- `MAESTRO_HIS_UPS` (Id_Ups, Descripcion_Ups)
+- `MaestroRegistrador` (Id_Registrador, Id_Tipo_Documento_Registrador, Numero_Documento_Registrador, Apellido_Paterno_Registrador, Apellido_Materno_Registrador, Nombres_Registrador, Fecha_Nacimiento_Registrador)
+- `MAESTRO_HIS_ACTIVIDAD_HIS` (Id_Actividad_His, Descripcion_Actividad_His, Fg_Estado)
+- `MAESTRO_HIS_COLEGIO` (Id_Colegio, Descripcion_Colegio)
+- `MAESTRO_HIS_DOSIS` (id_dosis, desc_dosis)
+- `MAESTRO_HIS_ETNIA` (Id_Etnia, Descripcion_Etnia)
+- `MAESTRO_HIS_FINANCIADOR` (Id_Financiador, Descripcion_Financiador)
+- `MAESTRO_HIS_GRUPORIESGO_LAB` (Id_GrupoRiesgo, Descripcion_GrupoRiesgo, Lab_Codigo, Lab_Valor)
+- `MAESTRO_HIS_INSTITUCION_EDUCATIVA` (Id_Institucion_Edu, Ubigeo_Institucion_Edu, Codigo_Modular, Descripcion_Institucion_Edu, Direccion, Descripcion_Nivel, Descripcion_Area)
+- `MAESTRO_HIS_LAB` (Codigo_Lab, Valor_Lab, Descripcion_Lab)
+- `MAESTRO_HIS_OTRA_CONDICION` (Id_Otra_Condicion, Descripcion_Otra_Condicion)
+- `MAESTRO_HIS_PAIS` (Id_Pais, Descripcion_Pais)
+- `MAESTRO_HIS_TIPO_DOC` (Id_Tipo_Documento, Abrev_Tipo_Doc, Descripcion_Tipo_Documento)
+- `MAESTRO_HIS_UBIGEO_INEI_RENIEC` (Id_Ubigueo_Inei, Id_Ubigueo_Reniec, Departamento, Provincia, Distrito, Codigo_Departamento_Inei, Codigo_Provincia_Inei, Codigo_Distrito_Inei, Codigo_Departamento_Reniec, Codigo_Provincia_Reniec, Codigo_Distrito_Reniec)
+
+### Función de base de datos
+
+```sql
+dbo.Historial_hra(@fechaIncial date, @FechaFinal date)  -- returns table
+```
+(nota: el parámetro se llama `@fechaIncial`, tal cual, con el typo — no lo corrijas, es el nombre real en la BD). Úsala para `GET /api/reportes/historial`.
+
+---
+
+## REGLAS DE NEGOCIO Y VALIDACIÓN
+
+- En los `POST`, valida **longitud máxima** de cada campo `varchar/nvarchar` según el esquema de arriba y rechaza con `400` si se excede.
+- Los campos `NOT NULL` de `V_SINADEF_AYACUCHO_DOMFALLECIDO` (todos excepto `EDAD` y `DEBIDO_CAUSA_E`) deben validarse como obligatorios antes del `INSERT`.
+- Todas las consultas deben ser **parametrizadas** (`request.input('param', sql.VarChar, valor)`), nunca concatenar strings en el SQL.
+- `GET /api/catalogos/:tabla` debe validar `:tabla` contra una **whitelist explícita** de los nombres de tabla listados arriba (para evitar SQL injection vía nombre de tabla dinámico, ya que ahí no se puede parametrizar el identificador).
+- Las búsquedas con `q` deben usar `LIKE '%' + @q + '%'` sobre las columnas relevantes (nombre, apellidos, documento, id) según el `modo` recibido.
+- Las fechas (`desde`/`hasta`) deben validarse como fechas ISO válidas antes de pasarlas a SQL Server.
+- Todas las respuestas de error deben devolver JSON `{ error: "mensaje" }` con el status HTTP correcto (400 validación, 404 no encontrado, 500 error de servidor) y **nunca** exponer el stack trace ni detalles internos de conexión en la respuesta al cliente (sí loguearlos en consola/servidor).
+
+---
+
+## CONEXIÓN A SQL SERVER
+
+- Usa `dotenv` para leer credenciales desde `.env` (nunca hardcodear usuario/contraseña).
+- Variables esperadas en `.env.example`:
+  ```
+  DB_SERVER=localhost
+  DB_PORT=1433
+  DB_DATABASE=BDHIS_HRA
+  DB_USER=
+  DB_PASSWORD=
+  DB_ENCRYPT=true
+  DB_TRUST_SERVER_CERTIFICATE=true
+  PORT=3000
+  CORS_ORIGIN=*
+  ```
+- Crea un **pool de conexión único** reutilizable (`mssql.ConnectionPool`) en `src/config/db.js`, exportado como promesa, y reutilízalo en todos los controladores (no abras una conexión nueva por request).
+- Maneja el evento de error del pool y reconexión básica.
+
+---
+
+## OTROS REQUISITOS
+
+- Configura `cors` (usando `CORS_ORIGIN` del `.env`) para que el frontend HTML (servido desde otro origen o `file://`) pueda consumir la API sin bloqueos.
+- Usa `helmet` para cabeceras de seguridad básicas.
+- Usa `morgan` para logging de requests en desarrollo.
+- Middleware global de manejo de errores (`errorHandler.js`) al final de la cadena de middlewares en `app.js`.
+- `package.json` con scripts `"start"` (node) y `"dev"` (nodemon).
+- Genera un `README.md` con: instrucciones de instalación (`npm install`), cómo configurar `.env`, cómo correr en desarrollo (`npm run dev`), y cómo apuntar el frontend (cambiar `API_BASE` en el HTML a `http://localhost:3000/api`).
+- No implementes autenticación/roles todavía (el frontend actual no la tiene); deja un comentario `// TODO: auth` en `app.js` para agregarla después.
+
+---
+
+## ENTREGABLE
+
+Genera el proyecto completo `his-backend/` con todos los archivos funcionales, código limpio y comentado en español, listo para ejecutar con `npm install && npm run dev` una vez configurado `.env` contra una instancia real de SQL Server 2022 con la base `BDHIS_HRA` ya creada a partir del script `scripsHis.sql`.
